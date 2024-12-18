@@ -74,21 +74,7 @@ try {
             var seederElement = torrent.getElementByTagName('td')[2];
             var seederCount = seederElement.textContent.trim();
 
-            if (service.H265Filter && /[xXhH]265/i.test(titleElement.textContent)) {
-                continue;
-            }
-                
-            // Determine quality based on title
-            var quality = "Unknown";
-            if (/1080p/i.test(titleElement.textContent)) {
-                quality = "1080p";
-            } else if (/720p/i.test(titleElement.textContent)) {
-                quality = "720p";
-            } else if (/XviD/i.test(titleElement.textContent)) {
-                quality = "480p";
-            }
-
-            var item = magnetLink + " - " + quality + " - " + seederCount;
+            var item = magnetLink + " - " + '' + " - " + seederCount;
             results.push(item);
 
         } catch (error) {
