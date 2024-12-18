@@ -1,5 +1,23 @@
-
 page.loading = true;
+
+// List of Pirate Bay mirrors to cycle through
+var mirrors = [
+    "https://thepiratebay7.com",
+    "https://thepiratebay0.org",
+    "https://thehiddenbay.com",
+    "https://piratebay.live",
+    "https://thepiratebay.zone",
+    "https://piratebayproxy.live"
+];
+
+// Function to get the next mirror from the list
+var currentMirrorIndex = 0;
+function getNextMirror() {
+    var mirror = mirrors[currentMirrorIndex];
+    currentMirrorIndex = (currentMirrorIndex + 1) % mirrors.length;
+    return mirror;
+}
+
 var relevantTitlePartMatch = title.match(/\s(S\d{2}E\d{2})/i);
 
 if (relevantTitlePartMatch) {
@@ -12,18 +30,20 @@ if (relevantTitlePartMatch) {
     var relevantTitlePart = title.match(/\b(19\d{2}|20\d{2})\b/);
 
     if (relevantTitlePart) {
-        relevantTitlePart = relevantTitlePart[0];  // Extract the year (first match)
+        relevantTitlePart = relevantTitlePart[0]; // Extract the year (first match)
         console.log('ThePirateBay | Relevant title part: ' + relevantTitlePart);
     } else {
         console.log('ThePirateBay | No year found in the title.');
     }
 }
 
-
-var searchUrl = "https://tpb.party/search/" + encodeURIComponent(title) + "/1/99/0";
 var results = [];
-
 try {
+    // Cycle to the next mirror
+    var baseUrl = getNextMirror();
+    var searchUrl = baseUrl + "/search/" + encodeURIComponent(title) + "/1/99/0";
+    console.log("ThePirateBay | Using mirror: " + baseUrl);
+
     var httpResponse = http.request(searchUrl);
     var searchPage = html.parse(httpResponse);
     
@@ -46,18 +66,17 @@ try {
             var titleElement = torrent.getElementByTagName('a')[2];
 
             if (!titleElement) continue;
-            //console.log("ThePirateBay | Found title Element: " + titleElement.textContent);
 
             // Use a regex to find the magnet link
             var magnetLinkElement = torrent.getElementByTagName('a')[3];
-
             var magnetLink = magnetLinkElement.attributes.getNamedItem('href').value;
-            //console.log("ThePirateBay | Found Magnet: " + magnetLink);
 
             var seederElement = torrent.getElementByTagName('td')[2];
             var seederCount = seederElement.textContent.trim();
 
-            if (service.H265Filter && /[xXhH]265/i.test(titleElement.textContent)) {continue;}
+            if (service.H265Filter && /[xXhH]265/i.test(titleElement.textContent)) {
+                continue;
+            }
                 
             // Determine quality based on title
             var quality = "Unknown";
