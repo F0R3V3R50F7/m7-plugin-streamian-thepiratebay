@@ -74,7 +74,7 @@ try {
             var seederElement = torrent.getElementByTagName('td')[2];
             var seederCount = seederElement.textContent.trim();
 
-            var item = magnetLink + " - " + '' + " - " + seederCount;
+            var item = magnetLink + " - " + 'Unknown' + " - " + seederCount + " - " + 'Unknown';
             results.push(item);
 
         } catch (error) {
