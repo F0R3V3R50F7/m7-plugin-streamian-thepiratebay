@@ -64,6 +64,7 @@ try {
         
         try {
             var titleElement = torrent.getElementByTagName('a')[2];
+            if (/[xXhH]265/i.test(titleElement.textContent)) {var codec = "H265";} else {var codec = "Unknown";};
 
             if (!titleElement) continue;
 
@@ -74,7 +75,7 @@ try {
             var seederElement = torrent.getElementByTagName('td')[2];
             var seederCount = seederElement.textContent.trim();
 
-            var item = magnetLink + " - " + 'Unknown' + " - " + seederCount + " - " + 'Unknown';
+            var item = magnetLink + " - " + 'Unknown' + " - " + seederCount + " - " + codec + " - " + "Unknown";
             results.push(item);
 
         } catch (error) {
