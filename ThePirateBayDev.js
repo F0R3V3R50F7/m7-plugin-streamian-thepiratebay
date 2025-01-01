@@ -1,5 +1,3 @@
-page.loading = true;
-
 // List of Pirate Bay mirrors to cycle through
 var mirrors = [
     "https://thepiratebay7.com",
@@ -52,7 +50,6 @@ if (title.indexOf('-') !== -1) {
     results = performSearch(title);
 }
 
-page.loading = false;
 return results;
 
 // Function to perform the torrent search and return the results
