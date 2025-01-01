@@ -1,5 +1,3 @@
-page.loading = true;
-
 // List of Pirate Bay mirrors to cycle through
 var mirrors = [
     "https://thepiratebay7.com",
@@ -38,54 +36,70 @@ if (relevantTitlePartMatch) {
 }
 
 var results = [];
-try {
-    // Cycle to the next mirror
-    var baseUrl = getNextMirror();
-    var searchUrl = baseUrl + "/search/" + encodeURIComponent(title) + "/1/99/0";
-    console.log("ThePirateBay | Using mirror: " + baseUrl);
 
-    var httpResponse = http.request(searchUrl);
-    var searchPage = html.parse(httpResponse);
-    
-    var torrentTable = searchPage.root.getElementByTagName('tbody')[0];
+// Check if the query contains hyphens
+if (title.indexOf('-') !== -1) {
+    // Search with the original title first
+    results = results.concat(performSearch(title));
 
-    if (!torrentTable) {
-        console.log("Torrent table not found.");
-        page.loading = false;
-        return [];
-    }
+    // Remove hyphens from the title and search again
+    var modifiedTitle = title.replace(/-/g, '');
+    results = results.concat(performSearch(modifiedTitle));
+} else {
+    // Search with the original title if no hyphens
+    results = performSearch(title);
+}
 
-    var torrents = torrentTable.getElementByTagName('tr');
-    console.log("ThePirateBay | Number of torrents found: " + torrents.length);
+return results;
 
-    // Limit to 10 torrents processed
-    for (var i = 0; i < Math.min(torrents.length, 10); i++) {
-        var torrent = torrents[i];
+// Function to perform the torrent search and return the results
+function performSearch(searchTitle) {
+    try {
+        // Cycle to the next mirror
+        var baseUrl = getNextMirror();
+        var searchUrl = baseUrl + "/search/" + encodeURIComponent(searchTitle) + "/1/99/0";
+        console.log("ThePirateBay | Using mirror: " + baseUrl);
+
+        var httpResponse = http.request(searchUrl);
+        var searchPage = html.parse(httpResponse);
         
-        try {
-            var titleElement = torrent.getElementByTagName('a')[2];
-            if (/[xXhH]265/i.test(titleElement.textContent)) {var codec = "H265";} else {var codec = "Unknown";};
+        var torrentTable = searchPage.root.getElementByTagName('tbody')[0];
 
-            if (!titleElement) continue;
-
-            // Use a regex to find the magnet link
-            var magnetLinkElement = torrent.getElementByTagName('a')[3];
-            var magnetLink = magnetLinkElement.attributes.getNamedItem('href').value;
-
-            var seederElement = torrent.getElementByTagName('td')[2];
-            var seederCount = seederElement.textContent.trim();
-
-            var item = magnetLink + " - " + 'Unknown' + " - " + seederCount + " - " + codec + " - " + "Unknown";
-            results.push(item);
-
-        } catch (error) {
-            console.log("ThePirateBay | Error processing torrent: " + error.message);
+        if (!torrentTable) {
+            console.log("Torrent table not found.");
+            return [];
         }
+
+        var torrents = torrentTable.getElementByTagName('tr');
+        console.log("ThePirateBay | Number of torrents found: " + torrents.length);
+
+        // Limit to 10 torrents processed
+        for (var i = 0; i < Math.min(torrents.length, 10); i++) {
+            var torrent = torrents[i];
+            
+            try {
+                var titleElement = torrent.getElementByTagName('a')[2];
+                if (/[xXhH]265/i.test(titleElement.textContent)) {var codec = "H265";} else {var codec = "Unknown";};
+
+                if (!titleElement) continue;
+
+                // Use a regex to find the magnet link
+                var magnetLinkElement = torrent.getElementByTagName('a')[3];
+                var magnetLink = magnetLinkElement.attributes.getNamedItem('href').value;
+
+                var seederElement = torrent.getElementByTagName('td')[2];
+                var seederCount = seederElement.textContent.trim();
+
+                var item = magnetLink + " - " + 'Unknown' + " - " + seederCount + " - " + codec + " - " + "Unknown";
+                results.push(item);
+
+            } catch (error) {
+                console.log("ThePirateBay | Error processing torrent: " + error.message);
+            }
+        }
+    } catch (err) {
+        console.log("ThePirateBay | Error: " + err.message);
     }
-    page.loading = false;
+
     return results;
-} catch (err) {
-    console.log("ThePirateBay | Error: " + err.message);
-    page.loading = false;
-    return [];
 }
