@@ -1,3 +1,4 @@
+page.loading = true;
 
 // List of Pirate Bay mirrors to cycle through
 var mirrors = [
@@ -17,19 +18,54 @@ function getNextMirror() {
     return mirror;
 }
 
+var relevantTitlePartMatch = title.match(/\s(S\d{2}E\d{2})/i);
+
+if (relevantTitlePartMatch) {
+    var relevantTitlePart = relevantTitlePartMatch[1]
+        .trim()
+        .toLowerCase();
+
+    console.log('ThePirateBay | Relevant title part: ' + relevantTitlePart);
+} else {
+    var relevantTitlePart = title.match(/\b(19\d{2}|20\d{2})\b/);
+
+    if (relevantTitlePart) {
+        relevantTitlePart = relevantTitlePart[0]; // Extract the year (first match)
+        console.log('ThePirateBay | Relevant title part: ' + relevantTitlePart);
+    } else {
+        console.log('ThePirateBay | No year found in the title.');
+    }
+}
+
 var results = [];
 
-// Function to perform a search on The Pirate Bay
+// Check if the query contains hyphens
+if (title.indexOf('-') !== -1) {
+    // Search with the original title first
+    results = results.concat(performSearch(title));
+
+    // Remove hyphens from the title and search again
+    var modifiedTitle = title.replace(/-/g, '');
+    results = results.concat(performSearch(modifiedTitle));
+} else {
+    // Search with the original title if no hyphens
+    results = performSearch(title);
+}
+
+page.loading = false;
+return results;
+
+// Function to perform the torrent search and return the results
 function performSearch(searchTitle) {
     try {
         // Cycle to the next mirror
         var baseUrl = getNextMirror();
         var searchUrl = baseUrl + "/search/" + encodeURIComponent(searchTitle) + "/1/99/0";
-        console.log("ThePirateBay | Using mirror: " + baseUrl + " | Searching: " + searchTitle);
+        console.log("ThePirateBay | Using mirror: " + baseUrl);
 
         var httpResponse = http.request(searchUrl);
         var searchPage = html.parse(httpResponse);
-
+        
         var torrentTable = searchPage.root.getElementByTagName('tbody')[0];
 
         if (!torrentTable) {
@@ -41,15 +77,14 @@ function performSearch(searchTitle) {
         console.log("ThePirateBay | Number of torrents found: " + torrents.length);
 
         // Limit to 10 torrents processed
-        var tempResults = [];
         for (var i = 0; i < Math.min(torrents.length, 10); i++) {
             var torrent = torrents[i];
-
+            
             try {
                 var titleElement = torrent.getElementByTagName('a')[2];
-                if (!titleElement) continue;
+                if (/[xXhH]265/i.test(titleElement.textContent)) {var codec = "H265";} else {var codec = "Unknown";};
 
-                var codec = /[xXhH]265/i.test(titleElement.textContent) ? "H265" : "Unknown";
+                if (!titleElement) continue;
 
                 // Use a regex to find the magnet link
                 var magnetLinkElement = torrent.getElementByTagName('a')[3];
@@ -59,34 +94,15 @@ function performSearch(searchTitle) {
                 var seederCount = seederElement.textContent.trim();
 
                 var item = magnetLink + " - " + 'Unknown' + " - " + seederCount + " - " + codec + " - " + "Unknown";
-                tempResults.push(item);
+                results.push(item);
 
             } catch (error) {
                 console.log("ThePirateBay | Error processing torrent: " + error.message);
             }
         }
-        return tempResults;
     } catch (err) {
         console.log("ThePirateBay | Error: " + err.message);
-        return [];
     }
+
+    return results;
 }
-
-// Check if the title contains hyphens
-if (title.includes('-')) {
-    console.log("ThePirateBay | Title contains hyphens. Running additional search.");
-
-    // Search with the original title
-    results = results.concat(performSearch(title));
-
-    // Search with hyphens removed
-    var sanitizedTitle = title.replace(/-/g, "");
-    results = results.concat(performSearch(sanitizedTitle));
-} else {
-    // Search with the original title only
-    results = performSearch(title);
-}
-// Combine and remove duplicate results
-results = [...new Set(results)];
-console.log("ThePirateBay | Total results: " + results.length);
-return results;
